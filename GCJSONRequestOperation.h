@@ -28,6 +28,7 @@
 + (instancetype)JSONRequest:(GCNetworkRequest *)networkRequest
               callBackQueue:(dispatch_queue_t)queue
           completionHandler:(void(^)(id JSON, NSHTTPURLResponse *response))completionBlock
-               errorHandler:(void(^)(id JSON, NSHTTPURLResponse *response, NSError *error))errorBlock;
+               errorHandler:(void(^)(id JSON, NSHTTPURLResponse *response, NSError *error))errorBlock
+            challengeHandler:(void(^)(NSURLConnection * connection, NSURLAuthenticationChallenge * challenge))challengeBlock;
 
 @end

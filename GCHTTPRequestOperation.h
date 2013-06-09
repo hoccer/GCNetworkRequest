@@ -47,13 +47,14 @@ extern dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue);
 + (instancetype)HTTPRequest:(GCNetworkRequest *)networkRequest
               callBackQueue:(dispatch_queue_t)queue
           completionHandler:(void(^)(NSData *data, NSHTTPURLResponse *response))completionBlock
-               errorHandler:(void(^)(NSData *data, NSHTTPURLResponse *response, NSError *error))errorBlock;
+               errorHandler:(void(^)(NSData *data, NSHTTPURLResponse *response, NSError *error))errorBlock
+           challengeHandler:(void(^)(NSURLConnection * connection, NSURLAuthenticationChallenge * challenge))challengeBlock;
 
 - (id)initWithHTTPRequest:(GCNetworkRequest *)networkRequest
             callBackQueue:(dispatch_queue_t)queue
         completionHandler:(void(^)(NSData *data, NSHTTPURLResponse *response))completionBlock
-             errorHandler:(void(^)(NSData *data, NSHTTPURLResponse *response, NSError *error))errorBlock;
-
+             errorHandler:(void(^)(NSData *data, NSHTTPURLResponse *response, NSError *error))errorBlock
+         challengeHandler:(void(^)(NSURLConnection * connection, NSURLAuthenticationChallenge * challenge))challengeBlock;
 
 - (void)startRequest;
 

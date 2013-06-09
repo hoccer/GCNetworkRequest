@@ -100,14 +100,23 @@ inline dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue)
     void(^_error_block)(NSData *, NSHTTPURLResponse *, NSError *);
     void(^_downloadProgressBlock)(NSUInteger, NSUInteger, NSUInteger);
     void(^_uploadProgressBlock)(NSUInteger, NSUInteger, NSUInteger);
+    void(^_challenge_block)(NSURLConnection * connection, NSURLAuthenticationChallenge * challenge);
 }
 
-+ (instancetype)HTTPRequest:(GCNetworkRequest *)networkRequest callBackQueue:(dispatch_queue_t)queue completionHandler:(void(^)(NSData *data, NSHTTPURLResponse *response))completionBlock errorHandler:(void(^)(NSData *data, NSHTTPURLResponse *response, NSError *error))errorBlock
++ (instancetype)HTTPRequest:(GCNetworkRequest *)networkRequest
+              callBackQueue:(dispatch_queue_t)queue
+          completionHandler:(void(^)(NSData *data, NSHTTPURLResponse *response))completionBlock
+               errorHandler:(void(^)(NSData *data, NSHTTPURLResponse *response, NSError *error))errorBlock
+           challengeHandler:(void(^)(NSURLConnection * connection, NSURLAuthenticationChallenge * challenge))challengeBlock;
 {
-    return [[self alloc] initWithHTTPRequest:networkRequest callBackQueue:queue completionHandler:completionBlock errorHandler:errorBlock];
+    return [[self alloc] initWithHTTPRequest:networkRequest callBackQueue:queue completionHandler:completionBlock errorHandler:errorBlock challengeHandler:challengeBlock];
 }
 
-- (id)initWithHTTPRequest:(GCNetworkRequest *)networkRequest callBackQueue:(dispatch_queue_t)queue completionHandler:(void(^)(NSData *data, NSHTTPURLResponse *response))completionBlock errorHandler:(void(^)(NSData *data, NSHTTPURLResponse *response, NSError *error))errorBlock
+- (id)initWithHTTPRequest:(GCNetworkRequest *)networkRequest
+            callBackQueue:(dispatch_queue_t)queue
+        completionHandler:(void(^)(NSData *data, NSHTTPURLResponse *response))completionBlock
+             errorHandler:(void(^)(NSData *data, NSHTTPURLResponse *response, NSError *error))errorBlock
+         challengeHandler:(void(^)(NSURLConnection * connection, NSURLAuthenticationChallenge * challenge))challengeBlock
 {
     self = [super init];
     if (self)
@@ -120,6 +129,7 @@ inline dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue)
         
         self->_completion_block = [completionBlock copy];
         self->_error_block = [errorBlock copy];
+        self->_challenge_block = [challengeBlock copy];
         
         self->_con_queue = dispatch_queue_create("com.gcnetworkrequest.httpoperation.queue", DISPATCH_QUEUE_CONCURRENT);
         self->_cancel_lock = dispatch_semaphore_create(1);
@@ -336,6 +346,11 @@ inline dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue)
 
 - (void)connection:(NSURLConnection *)connection willSendRequestForAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge
 {
+    if (_challenge_block) {
+        _challenge_block(connection, challenge);
+        return;
+    }
+    
     if ([[[challenge protectionSpace] authenticationMethod] isEqualToString:NSURLAuthenticationMethodServerTrust] && [challenge previousFailureCount] == 0 && [challenge proposedCredential] == nil)
     {
         if ([self allowUntrustedServerCertificate])

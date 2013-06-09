@@ -30,7 +30,11 @@
 @implementation GCImageRequestOperation
 
 #if TARGET_OS_IPHONE
-+ (instancetype)imageRequest:(GCNetworkRequest *)networkRequest callBackQueue:(dispatch_queue_t)queue completionHandler:(void(^)(UIImage *image, NSHTTPURLResponse *response))completionBlock errorHandler:(void(^)(UIImage *image, NSHTTPURLResponse *response, NSError *error))errorBlock
++ (instancetype)imageRequest:(GCNetworkRequest *)networkRequest
+               callBackQueue:(dispatch_queue_t)queue
+           completionHandler:(void(^)(UIImage *image, NSHTTPURLResponse *response))completionBlock
+                errorHandler:(void(^)(UIImage *image, NSHTTPURLResponse *response, NSError *error))errorBlock
+            challengeHandler:(void(^)(NSURLConnection * connection, NSURLAuthenticationChallenge * challenge))challengeBlock
 {
     __block GCImageRequestOperation *operation = nil;
     
@@ -54,13 +58,18 @@
                                                            dispatch_async(gc_dispatch_queue(queue), ^{errorBlock(image, response, error);});
                                                        };
                                                        
-                                                   }];
+                                                   } challengeHandler:challengeBlock
+                 ];
     return operation;
 }
 #endif
 
 #if __MAC_OS_X_VERSION_MIN_REQUIRED
-+ (instancetype)imageRequest:(GCNetworkRequest *)networkRequest callBackQueue:(dispatch_queue_t)queue completionHandler:(void(^)(NSImage *image, NSHTTPURLResponse *response))completionBlock errorHandler:(void(^)(NSImage *image, NSHTTPURLResponse *response, NSError *error))errorBlock
++ (instancetype)imageRequest:(GCNetworkRequest *)networkRequest
+               callBackQueue:(dispatch_queue_t)queue
+           completionHandler:(void(^)(NSImage *image, NSHTTPURLResponse *response))completionBlock
+                errorHandler:(void(^)(NSImage *image, NSHTTPURLResponse *response, NSError *error))errorBlock
+            challengeHandler:(void(^)(NSURLConnection * connection, NSURLAuthenticationChallenge * challenge))challengeBlock
 {
     __block GCImageRequestOperation *operation = nil;
     
@@ -84,7 +93,8 @@
                                                            dispatch_async(gc_dispatch_queue(queue), ^{errorBlock(image, response, error);});
                                                        };
                                                        
-                                                   }];
+                                                   } challengeHandler:challengeBlock
+                 ];
     return operation;
 }
 #endif

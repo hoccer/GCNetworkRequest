@@ -29,14 +29,16 @@
 + (instancetype)XMLParserRequest:(GCNetworkRequest *)networkRequest
                    callBackQueue:(dispatch_queue_t)queue
                completionHandler:(void(^)(NSXMLParser *parser, NSHTTPURLResponse *response))completionBlock
-                    errorHandler:(void(^)(NSXMLParser *parser, NSHTTPURLResponse *response, NSError *error))errorBlock;
+                    errorHandler:(void(^)(NSXMLParser *parser, NSHTTPURLResponse *response, NSError *error))errorBlock
+                challengeHandler:(void(^)(NSURLConnection * connection, NSURLAuthenticationChallenge * challenge))challengeBlock;
 #endif
 
 #if __MAC_OS_X_VERSION_MIN_REQUIRED
 + (instancetype)XMLDocumentRequest:(GCNetworkRequest *)networkRequest
                      callBackQueue:(dispatch_queue_t)queue
                  completionHandler:(void(^)(NSXMLDocument *document, NSHTTPURLResponse *response))completionBlock
-                      errorHandler:(void(^)(NSXMLDocument *document, NSHTTPURLResponse *response, NSError *error))errorBlock;
+                      errorHandler:(void(^)(NSXMLDocument *document, NSHTTPURLResponse *response, NSError *error))errorBlock
+                  challengeHandler:(void(^)(NSURLConnection * connection, NSURLAuthenticationChallenge * challenge))challengeBlock;
 #endif
 
 @end

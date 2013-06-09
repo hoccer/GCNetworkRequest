@@ -32,7 +32,11 @@
     NSError *_JSONError;
 }
 
-+ (instancetype)JSONRequest:(GCNetworkRequest *)networkRequest callBackQueue:(dispatch_queue_t)queue completionHandler:(void(^)(id JSON, NSHTTPURLResponse *response))completionBlock errorHandler:(void(^)(id JSON, NSHTTPURLResponse *response, NSError *error))errorBlock
++ (instancetype)JSONRequest:(GCNetworkRequest *)networkRequest
+              callBackQueue:(dispatch_queue_t)queue
+          completionHandler:(void(^)(id JSON, NSHTTPURLResponse *response))completionBlock
+               errorHandler:(void(^)(id JSON, NSHTTPURLResponse *response, NSError *error))errorBlock
+           challengeHandler:(void(^)(NSURLConnection * connection, NSURLAuthenticationChallenge * challenge))challengeBlock;
 {
     __block GCJSONRequestOperation *operation = nil;
     
@@ -59,7 +63,8 @@
                                                       }
                                                       
                                                       operation = nil;
-                                                  }];
+                                                  } challengeHandler:challengeBlock
+                 ];
     return operation;
 }
 
