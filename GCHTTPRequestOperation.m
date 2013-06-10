@@ -377,11 +377,13 @@ inline dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue)
             {
                 [[challenge sender] cancelAuthenticationChallenge:challenge];
                 
+#ifdef DEBUG
                 NSMutableDictionary *errorUserInfo = [@{} mutableCopy];
                 errorUserInfo[NSLocalizedDescriptionKey] = @"Authentication error";
                 NSError *error = [NSError errorWithDomain:[@"com." stringByAppendingString:NSStringFromClass([self class])]
                                                      code:401
                                                  userInfo:errorUserInfo];
+#endif
                 GCNRLog(@"Error: %@", [error userInfo]);
             }
         }
