@@ -24,6 +24,8 @@
 #import "GCNetworkQueue.h"
 #import "GCHTTPRequestOperation.h"
 
+#define QUEUE_DEBUG NO
+
 #if ! __has_feature(objc_arc)
 #   error GCNetworkRequest is ARC only. Use -fobjc-arc as compiler flag for this library
 #endif
@@ -43,7 +45,9 @@ static NSString * const kOperationCountKey = @"operationCount";
 
 - (void)enqueueOperation:(GCHTTPRequestOperation *)operation
 {
+    if (QUEUE_DEBUG) NSLog(@"GCNetworkQueue enqueueOperation %@, operationCount = %d", operation, self.operationCount);
     [self addOperation:operation];
+    if (QUEUE_DEBUG) NSLog(@"GCNetworkQueue enqueueOperation %@, after add operationCount = %d", operation, self.operationCount);
 }
 
 - (void)enqueueArrayOfOperations:(NSArray *)operations
@@ -73,6 +77,7 @@ static NSString * const kOperationCountKey = @"operationCount";
 {
     if (context == &kOperationCountStatusContext)
     {
+        if (QUEUE_DEBUG) NSLog(@"GCNetworkQueue observeValueForKeyPath operationCount = %d", self.operationCount);
         [[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:(self.operationCount > 0)];
     }
     else

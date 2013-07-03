@@ -24,6 +24,9 @@
 #import "GCHTTPRequestOperation.h"
 #import "GCNetworkRequest.h"
 
+#define OPERATION_DEBUG NO
+#define USE_CON_QUEUE 0
+
 #if ! __has_feature(objc_arc)
 #   error GCNetworkRequest is ARC only. Use -fobjc-arc as compiler flag for this library
 #endif
@@ -90,8 +93,11 @@ inline dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue)
 #endif
     
     BOOL _isExecuting, _isFinished, _isReady, _isCancelled;
-    
-    dispatch_queue_t _con_queue, _dispatch_queue;
+
+#if (USE_CON_QUEUE == 1)
+    dispatch_queue_t _con_queue;
+#endif
+    dispatch_queue_t _dispatch_queue;
     dispatch_semaphore_t _cancel_lock, _bg_lock;
     
     GCOperationState _operationState;
@@ -130,8 +136,11 @@ inline dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue)
         self->_completion_block = [completionBlock copy];
         self->_error_block = [errorBlock copy];
         self->_challenge_block = [challengeBlock copy];
-        
+
+#if (USE_CON_QUEUE == 1)
         self->_con_queue = dispatch_queue_create("com.gcnetworkrequest.httpoperation.queue", DISPATCH_QUEUE_CONCURRENT);
+        if (OPERATION_DEBUG) NSLog(@"created queue=%@", self->_con_queue);
+#endif
         self->_cancel_lock = dispatch_semaphore_create(1);
         self->_bg_lock = dispatch_semaphore_create(1);
         
@@ -178,6 +187,7 @@ inline dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue)
 
 - (void)startRequest
 {
+    if (OPERATION_DEBUG) NSLog(@"startRequest %@", _request);
     [self start];
 }
 
@@ -198,17 +208,21 @@ inline dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue)
 
 - (void)start
 {
-    if (![self isReadyForExecution]) return;
-    
+    if (![self isReadyForExecution]) {
+        return;
+    }
+
     self.operationState = GCOperationStateExecuting;
     
     [self performSelector:@selector(scheduleObjectsInRunLoop) onThread:[[self class] workerThread] withObject:nil waitUntilDone:NO];
+    if (OPERATION_DEBUG) NSLog(@"start %@", _request);
     
     [self registerBackgroundTask];
 }
 
 - (void)scheduleObjectsInRunLoop
 {
+    if (OPERATION_DEBUG) NSLog(@"scheduleObjectsInRunLoop %@", _request);
     self->_connection = [[NSURLConnection alloc] initWithRequest:self->_request delegate:self startImmediately:NO];
     [self->_connection scheduleInRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
     [self->_connection start];
@@ -221,9 +235,14 @@ inline dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue)
     [self endBackgroundTask];
     
     NSThread *workerThread = [[self class] workerThread];
-    if (![workerThread isCancelled]) [workerThread cancel];
+    if (![workerThread isCancelled]) {
+        if (OPERATION_DEBUG) NSLog(@"finish canceling workerThread");
+        [workerThread cancel];
+    }
     
     self.operationState = GCOperationStateFinished;
+    if (OPERATION_DEBUG) NSLog(@"finish %@", _request);
+
 }
 
 - (BOOL)isConcurrent
@@ -233,16 +252,19 @@ inline dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue)
 
 - (BOOL)isReady
 {
+    if (OPERATION_DEBUG) NSLog(@"isReady returning %d", GCOperationStateReady == self.operationState);
     return GCOperationStateReady == self.operationState;
 }
 
 - (BOOL)isExecuting
 {
+    if (OPERATION_DEBUG) NSLog(@"isExecuting returning %d", GCOperationStateExecuting == self.operationState);
     return GCOperationStateExecuting == self.operationState;
 }
 
 - (BOOL)isFinished
 {
+    if (OPERATION_DEBUG) NSLog(@"isFinished returning %d", GCOperationStateExecuting == self.operationState);
     return GCOperationStateFinished == self.operationState;
 }
 
@@ -532,19 +554,27 @@ inline dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue)
 
 - (GCOperationState)operationState
 {
+#if 0
+    if (OPERATION_DEBUG) NSLog(@"operationState %d", self->_operationState);
     __block GCOperationState state = (GCOperationState)0;
     dispatch_block_t block = ^{state = self->_operationState;};
     dispatch_sync(self->_con_queue, block);
+    if (OPERATION_DEBUG) NSLog(@"returning operationState %d", self->_operationState);
     return state;
+#else 
+    return self->_operationState;
+#endif
 }
 
-- (void)setOperationState:(GCOperationState)operationState
+- (void)setOperationState:(GCOperationState)newOperationState
 {
+    if (OPERATION_DEBUG) NSLog(@"setOperationState %d -> %d, op=%@", self->_operationState,newOperationState,self);
     dispatch_block_t block = ^{
         
-        assert(operationState > self->_operationState);
+        assert(newOperationState > self->_operationState);
+        if (OPERATION_DEBUG) NSLog(@"begin executing setOperationState %d -> %d, op=%@", self->_operationState,newOperationState,self);
         
-        switch (operationState)
+        switch (newOperationState)
         {
             case GCOperationStateReady:
                 [self willChangeValueForKey:@"isReady"];
@@ -559,9 +589,10 @@ inline dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue)
                 break;
         }
         
-        self->_operationState = operationState;
+        if (OPERATION_DEBUG) NSLog(@"executing setOperationState %d -> %d, op=%@", self->_operationState,newOperationState,self);
+        self->_operationState = newOperationState;
         
-        switch (operationState)
+        switch (newOperationState)
         {
             case GCOperationStateReady:
                 [self didChangeValueForKey:@"isReady"];
@@ -575,9 +606,12 @@ inline dispatch_queue_t gc_dispatch_queue(dispatch_queue_t queue)
                 [self didChangeValueForKey:@"isFinished"];
                 break;
         }
+        if (OPERATION_DEBUG) NSLog(@"end executing setOperationState -> %d, queue=%@", newOperationState,self);
     };
     
-    dispatch_barrier_async(self->_con_queue, block);
+    // dispatch_barrier_async(self->_con_queue, block);
+    // dispatch_async(self->_con_queue, block);
+    dispatch_async(dispatch_get_main_queue(), block);
 }
 
 @end
