@@ -45,9 +45,9 @@ static NSString * const kOperationCountKey = @"operationCount";
 
 - (void)enqueueOperation:(GCHTTPRequestOperation *)operation
 {
-    if (QUEUE_DEBUG) NSLog(@"GCNetworkQueue enqueueOperation %@, operationCount = %d", operation, self.operationCount);
+    if (QUEUE_DEBUG) NSLog(@"GCNetworkQueue enqueueOperation %@, operationCount = %@", operation, @(self.operationCount));
     [self addOperation:operation];
-    if (QUEUE_DEBUG) NSLog(@"GCNetworkQueue enqueueOperation %@, after add operationCount = %d", operation, self.operationCount);
+    if (QUEUE_DEBUG) NSLog(@"GCNetworkQueue enqueueOperation %@, after add operationCount = %@", operation, @(self.operationCount));
 }
 
 - (void)enqueueArrayOfOperations:(NSArray *)operations
@@ -77,7 +77,7 @@ static NSString * const kOperationCountKey = @"operationCount";
 {
     if (context == &kOperationCountStatusContext)
     {
-        if (QUEUE_DEBUG) NSLog(@"GCNetworkQueue observeValueForKeyPath operationCount = %d", self.operationCount);
+        if (QUEUE_DEBUG) NSLog(@"GCNetworkQueue observeValueForKeyPath operationCount = %@", @(self.operationCount));
         [[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:(self.operationCount > 0)];
     }
     else
